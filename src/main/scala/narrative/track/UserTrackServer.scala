@@ -11,7 +11,6 @@ object UserTrackServer extends StreamApp[IO] {
   import scala.concurrent.ExecutionContext.Implicits.global
 
   org.h2.tools.Server.createTcpServer().start()
-  org.h2.tools.Server.createWebServer().start() //just for debugging
 
   def stream(args: List[String], requestShutdown: IO[Unit]) = ServerStream.stream[IO]
 }
@@ -21,7 +20,7 @@ object ServerStream {
   def userTrack[F[_]: Effect: Async] = {
     val xa = Transactor.fromDriverManager[F](
       "org.h2.Driver", // driver classname
-      "jdbc:h2:mem:user-track;DB_CLOSE_DELAY=-1;INIT=RUNSCRIPT FROM 'src/main/resources/createdb.sql'", // connect URL (driver-specific)
+      "jdbc:h2:mem:user-track;DB_CLOSE_DELAY=-1;INIT=RUNSCRIPT FROM 'src/main/resources/createdb.sql'",
       "sa", // user
       "" // password
     )
