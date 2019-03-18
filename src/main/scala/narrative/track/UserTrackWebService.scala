@@ -2,17 +2,15 @@ package narrative.track
 
 import cats.Monad
 import cats.effect.Effect
-import doobie.util.transactor.Transactor
 import org.http4s.HttpService
 import org.http4s.dsl.Http4sDsl
 
-class UserTrackWebService[F[_]: Effect](xa: Transactor[F]) extends Http4sDsl[F] {
+class UserTrackWebService[F[_]: Effect](userTrack: UserTrack[F]) extends Http4sDsl[F] {
 
   object TimestampQueryParamMatcher extends QueryParamDecoderMatcher[Long]("timestamp")
   object UserQueryParamMatcher extends QueryParamDecoderMatcher[String]("user")
   object EventQueryParamMatcher extends QueryParamDecoderMatcher[String]("event")
 
-  val userTrack = new UserTrack[F](xa)
   val service: HttpService[F] = {
     HttpService[F] {
       case GET -> Root / "analytics" :? TimestampQueryParamMatcher(ts)  => {

@@ -12,9 +12,8 @@ object Impression extends Event
 
 case class UserEvent(ts: Long, userId: String, event: String)
 
-class UserTrack[F[_]:Effect](xa: Transactor[F]) {
+class UserTrack[F[_]:Effect](eventsDB: EventsDB[F]) {
 
-  val eventsDB = new EventsDB[F](xa)
 
   def storeEvent(ts: Long, userId: String, event: String) = {
     eventsDB.addEvent(UserEvent(ts, userId, event)) //we actually can get rid of UserEvent and trade clarity for memory
