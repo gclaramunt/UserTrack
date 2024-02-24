@@ -1,39 +1,49 @@
 package narrative.track
 
-import cats.effect.{Async, Effect, IO}
+import cats.effect.{Async, IO, IOApp}
 import doobie.util.transactor.Transactor
-import fs2.StreamApp
-import org.http4s.server.blaze.BlazeBuilder
+import org.http4s.ember.server.EmberServerBuilder
+import com.comcast.ip4s._
+import cats.implicits._
+import doobie._
+import doobie.implicits._
+import fs2.io.net.Network
 
 import scala.concurrent.ExecutionContext
 
-object UserTrackServer extends StreamApp[IO] {
-  import scala.concurrent.ExecutionContext.Implicits.global
+object UserTrackServer extends IOApp.Simple {
 
   org.h2.tools.Server.createTcpServer().start()
 
-  def stream(args: List[String], requestShutdown: IO[Unit]) = ServerStream.stream[IO]
+  val run = ServerStream.stream[IO]
 }
 
 object ServerStream {
 
-  def userTrack[F[_]: Effect: Async] = {
+  def userTrack[F[_]: Async] = {
     val xa = Transactor.fromDriverManager[F](
       "org.h2.Driver", // driver classname
       "jdbc:h2:mem:user-track;DB_CLOSE_DELAY=-1;INIT=RUNSCRIPT FROM 'src/main/resources/createdb.sql'",
       "sa", // user
-      "" // password
+      "", // password
+      None
     )
     val eventsDB = new EventsDB[F](xa)
     new UserTrack[F](eventsDB)
   }
 
-  def userTrackWebService[F[_]: Effect] = new UserTrackWebService[F](userTrack).service
+  def userTrackWebService[F[_]: Async] =
+    new UserTrackWebService[F](userTrack).service
 
-  def stream[F[_]: Effect](implicit ec: ExecutionContext) = {
-    BlazeBuilder[F]
-      .bindHttp(8080, "0.0.0.0")
-      .mountService(userTrackWebService, "/")
-      .serve
+  def stream[F[_]: Async: Network] = {
+    EmberServerBuilder
+      .default[F]
+      .withHost(ipv4"0.0.0.0")
+      .withPort(port"8080")
+      .withHttpApp(userTrackWebService)
+      .build
+      .useForever
+
   }
+
 }

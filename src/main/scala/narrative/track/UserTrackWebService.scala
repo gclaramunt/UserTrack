@@ -1,18 +1,18 @@
 package narrative.track
 
 import cats.Monad
-import cats.effect.Effect
-import org.http4s.HttpService
+import cats.effect.kernel.MonadCancelThrow
+import org.http4s.{HttpApp, HttpRoutes}
 import org.http4s.dsl.Http4sDsl
 
-class UserTrackWebService[F[_]: Effect](userTrack: UserTrack[F]) extends Http4sDsl[F] {
+class UserTrackWebService[F[_]: MonadCancelThrow](userTrack: UserTrack[F]) extends Http4sDsl[F] {
 
   object TimestampQueryParamMatcher extends QueryParamDecoderMatcher[Long]("timestamp")
   object UserQueryParamMatcher extends QueryParamDecoderMatcher[String]("user")
   object EventQueryParamMatcher extends QueryParamDecoderMatcher[String]("event")
 
-  val service: HttpService[F] = {
-    HttpService[F] {
+  val service: HttpApp[F] = {
+    HttpRoutes.of[F] {
       case GET -> Root / "analytics" :? TimestampQueryParamMatcher(ts)  => {
         val responseStream: fs2.Stream[F,String] = userTrack.aggregateEvents(ts).map { case (users, clicks, impressions) =>
           s"unique_users,${users.size}\nclicks,${clicks}\nimpressions,${impressions}"}
@@ -22,5 +22,5 @@ class UserTrackWebService[F[_]: Effect](userTrack: UserTrack[F]) extends Http4sD
         val m = implicitly[Monad[F]]
         m.flatMap(userTrack.storeEvent(ts, userId, event) )( _ => NoContent() )
     }
-  }
+  }.orNotFound
 }

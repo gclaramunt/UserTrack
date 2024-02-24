@@ -1,12 +1,10 @@
 package narrative.track
 
-import cats.effect.Effect
+import cats.effect.MonadCancelThrow
 import doobie._
 import doobie.implicits._
 
-
-class EventsDB[F[_]:Effect](xa: Transactor[F]) {
-
+class EventsDB[F[_]: MonadCancelThrow](xa: Transactor[F]) {
 
   def getEvents(start: Long, end: Long): fs2.Stream[F, UserEvent] = {
     sql"SELECT ts, user_id, event FROM user_events WHERE ts BETWEEN $start AND $end"
@@ -16,8 +14,8 @@ class EventsDB[F[_]:Effect](xa: Transactor[F]) {
   }
 
   def addEvent(ev: UserEvent): F[Int] = {
-    sql"insert into user_events (ts, user_id, event ) values (${ev.ts}, ${ev.userId}, ${ev.event})"
-      .update.run.transact(xa)
+    sql"insert into user_events (ts, user_id, event ) values (${ev.ts}, ${ev.userId}, ${ev.event})".update.run
+      .transact(xa)
   }
 
 }
