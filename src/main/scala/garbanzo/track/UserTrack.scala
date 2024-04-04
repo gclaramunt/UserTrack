@@ -1,4 +1,4 @@
-package narrative.track
+package garbanzo.track
 
 import java.time.Instant
 import java.time.temporal.ChronoUnit
@@ -13,13 +13,13 @@ object EventType {
 
 class UserTrack[F[_]: MonadCancelThrow](eventsDB: EventsDB[F]) {
 
-  def storeEvent(ts: Long, userId: String, event: String) = {
+  def storeEvent(ts: Long, userId: String, event: String): F[Int] = {
     eventsDB.addEvent(
       UserEvent(ts, userId, event)
     ) // we actually can get rid of UserEvent and trade clarity for memory
   }
 
-  def aggregateEvents(ts: Long) = {
+  def aggregateEvents(ts: Long): fs2.Stream[F, (Set[String], Int, Int)] = {
     val instant = Instant.ofEpochSecond(ts)
     val start = instant.truncatedTo(ChronoUnit.HOURS)
     val end = start.plus(1, ChronoUnit.HOURS)

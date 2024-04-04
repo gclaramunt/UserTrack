@@ -1,4 +1,4 @@
-package narrative.track
+package garbanzo.track
 
 import cats.effect.IO
 import org.http4s._
